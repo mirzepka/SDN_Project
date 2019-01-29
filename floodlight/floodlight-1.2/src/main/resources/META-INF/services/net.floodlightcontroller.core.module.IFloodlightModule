@@ -28,4 +28,5 @@ net.floodlightcontroller.accesscontrollist.ACL
 net.floodlightcontroller.dhcpserver.DHCPServer
 net.floodlightcontroller.learningswitch.LearningSwitch
 net.floodlightcontroller.statistics.StatisticsCollector
+net.floodlightcontroller.multipathrouting.MultiPathRouting
 pl.edu.agh.kt.SdnLabListener
