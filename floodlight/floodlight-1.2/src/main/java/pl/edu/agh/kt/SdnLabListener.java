@@ -15,7 +15,6 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
-
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import java.util.ArrayList;
 
@@ -49,9 +48,10 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 			FloodlightContext cntx) {
 
 		logger.info("************* NEW PACKET IN *************");
-//		PacketExtractor extractor = new PacketExtractor();
-//		extractor.packetExtract(cntx);
+		PacketExtractor extractor = new PacketExtractor();
+		extractor.packetExtract(cntx);
 
+		// TODO
 		OFPacketIn pin = (OFPacketIn) msg;
 		OFPort outPort = OFPort.of(0);
 		if (pin.getInPort() == OFPort.of(1)) {
@@ -59,10 +59,7 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 		} else
 			outPort = OFPort.of(1);
 		Flows.simpleAdd(sw, pin, cntx, outPort);
-		
-		//sending PacketOut
-		Flows.sendPacketOut(sw);
-		
+
 		return Command.STOP;
 	}
 
