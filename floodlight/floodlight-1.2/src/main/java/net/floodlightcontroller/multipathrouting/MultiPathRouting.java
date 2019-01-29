@@ -25,10 +25,15 @@ import net.floodlightcontroller.topology.NodePortTuple;
 import net.floodlightcontroller.routing.Route;
 import net.floodlightcontroller.routing.RouteId;
 import net.floodlightcontroller.core.IFloodlightProviderService;
-import net.floodlightcontroller.multipathrouting.LinkWithCost;
+import net.floodlightcontroller.multipathrouting.types.LinkWithCost;
+import net.floodlightcontroller.multipathrouting.types.FlowId;
+import net.floodlightcontroller.multipathrouting.types.MultiRoute;
+import net.floodlightcontroller.multipathrouting.types.NodeCost;
 import net.floodlightcontroller.restserver.IRestApiService;
 
 import org.openflow.util.HexString;
+import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.OFPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +90,7 @@ public class MultiPathRouting implements IFloodlightModule ,ITopologyListener, I
     public void topologyChanged(List<LDUpdate> linkUpdates){
         for (LDUpdate update : linkUpdates){
             if (update.getOperation().equals(ILinkDiscovery.UpdateOperation.LINK_REMOVED) || update.getOperation().equals(ILinkDiscovery.UpdateOperation.LINK_UPDATED)) {
-                LinkWithCost srcLink = new LinkWithCost(update.getSrc(), update.getSrcPort(), update.getDst(), update.getDstPort(),1);
+                LinkWithCost srcLink = new LinkWithCost(update.getSrc().getLong(), update.getSrcPort().getShortPortNumber(), update.getDst().getLong(), update.getDstPort().getShortPortNumber(),1);
                 LinkWithCost dstLink = srcLink.getInverse();
                 if (update.getOperation().equals(ILinkDiscovery.UpdateOperation.LINK_REMOVED)){
                     removeLink(srcLink);
@@ -139,7 +144,7 @@ public class MultiPathRouting implements IFloodlightModule ,ITopologyListener, I
         MultiRoute routes = null;
         Route result = null;
         try{
-            routes = pathcache.get(new RouteId(srcDpid,dstDpid));
+            routes = pathcache.get(new RouteId(DatapathId.of(srcDpid),DatapathId.of(dstDpid)));
         }catch (Exception e){
             logger.error("error {}",e.toString());
         }
@@ -154,12 +159,12 @@ public class MultiPathRouting implements IFloodlightModule ,ITopologyListener, I
             nptList = new ArrayList<NodePortTuple>();
         }
 
-        npt = new NodePortTuple(srcDpid, srcPort);
+        npt = new NodePortTuple(DatapathId.of(srcDpid), OFPort.of(srcPort));
         nptList.add(0, npt); 
-        npt = new NodePortTuple(dstDpid, dstPort);
+        npt = new NodePortTuple(DatapathId.of(dstDpid), OFPort.of(dstPort));
         nptList.add(npt); 
 
-        result = new Route(new RouteId(srcDpid,dstDpid), nptList);
+        result = new Route(new RouteId(DatapathId.of(srcDpid),DatapathId.of(dstDpid)), nptList);
         return result;
     }
 
@@ -168,8 +173,8 @@ public class MultiPathRouting implements IFloodlightModule ,ITopologyListener, I
     }
 
     public MultiRoute computeMultiPath(RouteId rid){
-        Long srcDpid = rid.getSrc();
-        Long dstDpid = rid.getDst();
+        Long srcDpid = rid.getSrc().getLong();
+        Long dstDpid = rid.getDst().getLong();
         MultiRoute routes = new MultiRoute();
         if( srcDpid == dstDpid)
             return routes;
@@ -224,14 +229,14 @@ public class MultiPathRouting implements IFloodlightModule ,ITopologyListener, I
             return ; 
         if( current == srcDpid){
             pathCount++;
-            Route result = new Route(new RouteId(srcDpid,dstDpid), new LinkedList<NodePortTuple>(switchPorts));
+            Route result = new Route(new RouteId(DatapathId.of(srcDpid),DatapathId.of(dstDpid)), new LinkedList<NodePortTuple>(switchPorts));
             routes.addRoute(result);
             return ;
         }
         HashSet<LinkWithCost> links = previous.get(current);
         for(LinkWithCost link: links){
-            NodePortTuple npt = new NodePortTuple(link.getDstDpid(), link.getDstPort());
-            NodePortTuple npt2 = new NodePortTuple(link.getSrcDpid(), link.getSrcPort());
+            NodePortTuple npt = new NodePortTuple(DatapathId.of(link.getDstDpid()), OFPort.of(link.getDstPort()));
+            NodePortTuple npt2 = new NodePortTuple(DatapathId.of(link.getSrcDpid()), OFPort.of(link.getSrcPort()));
             switchPorts.addFirst(npt2);
             switchPorts.addFirst(npt);
             generateMultiPath(routes,srcDpid, dstDpid, link.getDstDpid(), previous,switchPorts);

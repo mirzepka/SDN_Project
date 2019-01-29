@@ -1,4 +1,4 @@
-package net.floodlightcontroller.multipathrouting;
+package net.floodlightcontroller.multipathrouting.types;
 
 import java.util.ArrayList;
 
