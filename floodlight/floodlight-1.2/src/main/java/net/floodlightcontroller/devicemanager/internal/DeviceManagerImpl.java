@@ -212,7 +212,7 @@ public class DeviceManagerImpl implements IDeviceService, IOFMessageListener, IT
 	 * This is the master device map that maps device IDs to {@link Device}
 	 * objects.
 	 */
-	protected ConcurrentHashMap<Long, Device> deviceMap;
+	public /*tmp*/ ConcurrentHashMap<Long, Device> deviceMap;
 
 	/**
 	 * Counter used to generate device keys

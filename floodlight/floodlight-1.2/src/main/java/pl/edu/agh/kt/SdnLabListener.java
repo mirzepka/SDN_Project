@@ -1,6 +1,9 @@
 package pl.edu.agh.kt;
 
+import static org.easymock.EasyMock.createMock;
+
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,7 +23,13 @@ import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 
 import net.floodlightcontroller.core.IFloodlightProviderService;
+import net.floodlightcontroller.devicemanager.IDeviceService;
+import net.floodlightcontroller.devicemanager.internal.Device;
+import net.floodlightcontroller.devicemanager.internal.DeviceManagerImpl;
+import net.floodlightcontroller.packet.ARP;
+import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.routing.Link;
+import net.floodlightcontroller.topology.ITopologyService;
 import net.floodlightcontroller.topology.TopologyManager;
 
 import java.util.ArrayList;
@@ -33,7 +42,9 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 	protected IFloodlightProviderService floodlightProvider;
 	protected static Logger logger;
 	protected TopologyManager tm;
-	
+	protected DeviceManagerImpl deviceManager;
+	protected int pingCounter = 4;
+	protected Map<Integer, DatapathId> addrMap = new HashMap<Integer, DatapathId>(); 
 	@Override
 	public String getName() {
 		return SdnLabListener.class.getSimpleName();
@@ -50,14 +61,40 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 		// TODO Auto-generated method stub
 		return false;
 	}
-
+	
+	protected boolean isCorrectCall() {
+		if (addrMap.size() > 0){
+			return true;
+		}
+		if ( pingCounter > deviceManager.deviceMap.size())
+		{
+			return false;
+		}
+		for (Device dev : deviceManager.deviceMap.values()){
+			addrMap.put(dev.getEntities()[0].getIpv4Address().getInt(), dev.getEntities()[0].getSwitchDPID());
+		}
+		return true;
+	}
 	@Override
 	public net.floodlightcontroller.core.IListener.Command receive(IOFSwitch sw, OFMessage msg,
 			FloodlightContext cntx) {
 		logger.info("************* NEW PACKET IN *************");
+		if(!isCorrectCall()){
+			return  Command.STOP;
+		}
 		PacketExtractor extractor = new PacketExtractor();
 		extractor.packetExtract(cntx);
 
+		Object tmpObj = cntx.getStorage().get("net.floodlightcontroller.core.IFloodlightProvider.piPayload");
+		Ethernet eth = (Ethernet)tmpObj;
+		ARP arp = (ARP) eth.getPayload();
+		int ipAddr = arp.getTargetProtocolAddress().getInt();
+		
+		DatapathId targetDpId = addrMap.get(ipAddr);// Tu jest ID ostatniego nodea w sieci, potrzebne do Dijkstry
+		logger.info("TargetNodeIP: " + targetDpId.toString()); 		
+	
+		
+		
 		//TODO LAB 5
 		Flows.sendPacketOut(sw);
 			
@@ -192,6 +229,12 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 		logger = LoggerFactory.getLogger(SdnLabListener.class);
 		tm  = new TopologyManager();
         tm.init(context);
+        //ITopologyService topology = createMock(ITopologyService.class);
+        //context.addService(ITopologyService.class, tm);
+        deviceManager = new DeviceManagerImpl();
+        context.addService(IDeviceService.class, deviceManager);
+        deviceManager.init(context);
+        deviceManager.startUp(context);
         
 	}
 
