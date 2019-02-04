@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
+import java.util.HashMap;
 
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFPacketIn;
@@ -28,6 +30,7 @@ import net.floodlightcontroller.devicemanager.internal.Device;
 import net.floodlightcontroller.devicemanager.internal.DeviceManagerImpl;
 import net.floodlightcontroller.packet.ARP;
 import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.linkdiscovery.web.LinksResource;
 import net.floodlightcontroller.routing.Link;
 import net.floodlightcontroller.topology.ITopologyService;
 import net.floodlightcontroller.topology.TopologyManager;
@@ -45,6 +48,11 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 	protected DeviceManagerImpl deviceManager;
 	protected int pingCounter = 4;
 	protected Map<Integer, DatapathId> addrMap = new HashMap<Integer, DatapathId>(); 
+	
+	private Map<Long,DatapathId> nodes = new HashMap<>(); 
+	boolean firstTime = true;
+    private List<LinkContainer> linksContainer = new ArrayList<>();
+	
 	@Override
 	public String getName() {
 		return SdnLabListener.class.getSimpleName();
@@ -96,10 +104,17 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 		
 		
 		//TODO LAB 5
-		Flows.sendPacketOut(sw);
-			
+		
 		Set<DatapathId> allIds = tm.switchService.getAllSwitchDpids();
-		//logger.info(allIds.toString());
+		
+		Flows.sendPacketOut(sw);
+		if(firstTime==true){
+			firstTime=false;
+			topologyInit(allIds);
+			
+		}
+		logger.info("MOJEMOJEMOJE"+nodes.toString());
+		logger.info("MOJEJEOEJEO" + linksContainer.toString());
 		
 		ArrayList<String> path = new ArrayList<>();
 		
@@ -110,6 +125,11 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 					 *1.w "init" stworzyc graf dijkstry na podstawie:
 					 *	-tm.switchService.getAllSwitchDpids() - wszytskie identyfikatory nodeow
 					 *  -tm.linkDiscoveryService.getLinks().keySet() - wszystkie linki(srcId,srcPort-dstId,dstPort
+					 *  update MZ: dodalem topologyInit(allIds) wyzej i to inicjuje moja liste nodow i linkow -
+					 *  teraz trzeba zrobic djikstre i zaczytywanie kosztow to dodam jutro - jak cos to
+					 *  linksContaier zawier liste linkow - id przypisywalem losowo bo nie widzialem w oryginalnych
+					 *  linkach jakiegos id, a nodes zawiera liste nodow, aczkolwiek nie wiem czy to sie przyda,
+					 *  bo one juz siedza w linkach
 					 *2. Wywolac tutaj dijkstre i zapisac sciezke do list path(zahardkodowane wartosci sa ponizej zeby stworzyc sciezke z node 1 do node 3)
 					 *3. Zeby miec obecne obciazenie na laczach trzeba uzyc modulu StatisticsCollector
 					 *  - w nim jest funkcja getBandwidthConsumption()
@@ -141,11 +161,11 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 			DatapathId dpid = DatapathId.of(0);
 			for(DatapathId dp : allIds)
 			{
-				logger.info("COMAPRISON:");
+			/*	logger.info("COMAPRISON:");
 				logger.info(dp.toString());
 				logger.info(path.get(i));
 				logger.info(""+dp.toString().length());
-				logger.info(""+(path.get(i).length()));
+				logger.info(""+(path.get(i).length()));*/
 				if (dp.toString().equals(path.get(i)))
 				{logger.info("CORRRRRRRRRRRRRRRRRRRRRRRECT");
 					dpid = dp;
@@ -154,9 +174,9 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 			IOFSwitch swit = tm.switchService.getSwitch(dpid);
 			if (swit == null)
 			{
-				logger.info("NUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUL");
+			/*	logger.info("NUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUL");
 				logger.info(tm.switchService.getAllSwitchDpids().toString());
-				logger.info(dpid.toString());
+				logger.info(dpid.toString());*/
 			}
 			//swit.getPorts();
 			logger.info("ASASASASASASASASASSA");
@@ -244,5 +264,16 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 		logger.info("******************* START **************************");
 
 	}
+	private void topologyInit(Set<DatapathId> allIds){
+        for(DatapathId node : allIds){
+        	nodes.put(node.getLong(),node);
+        }
+        long linkIdIterator = 0;
+        for(Link link : tm.linkDiscoveryService.getLinks().keySet()){
+        	linksContainer.add(new LinkContainer(link.getSrc().getLong(),link.getDst().getLong(),linkIdIterator,1L));
+        	linkIdIterator++;
+        }
+	}
 
 }
+
