@@ -25,13 +25,17 @@ class MyTopo( Topo ):
         hosts.append(self.addHost( 'h2' ))
         hosts.append(self.addHost( 'h3' ))
         hosts.append(self.addHost( 'h4' ))
+        hosts.append(self.addHost( 'h11' ))
+        hosts.append(self.addHost( 'h111' ))
 #        hosts.append(self.addHost( 'h5' ))
 #        hosts.append(self.addHost( 'h6' ))
 #        hosts.append(self.addHost( 'h7' ))
 
         # Add host-switch links
-        for idx in range(len(hosts)):
+        for idx in range(len(switches)):
             self.addLink( hosts[idx], switches[idx])
+        self.addLink( hosts[-1], switches[0])
+        self.addLink( hosts[-2], switches[0])
 
         # Add switch-switch links
         self.addLink( switches[0], switches[1])

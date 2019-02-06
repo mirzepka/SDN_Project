@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import net.floodlightcontroller.core.IOFSwitch;
+import net.floodlightcontroller.packet.ARP;
 import net.floodlightcontroller.packet.Data;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
@@ -101,6 +102,13 @@ public class Flows {
 		// match
 		Match.Builder mb = sw.getOFFactory().buildMatch();
 		mb.setExact(MatchField.IN_PORT, inPort);
+		PacketExtractor extractor = new PacketExtractor();
+		extractor.packetExtract(cntx);
+		Object tmpObj = cntx.getStorage().get("net.floodlightcontroller.core.IFloodlightProvider.piPayload");
+		Ethernet eth = (Ethernet)tmpObj;
+		ARP arp = (ARP) eth.getPayload();
+		//mb.setExact(MatchField.IPV4_SRC, arp.getSenderProtocolAddress());
+		
 		Match m = mb.build();
 		
 		// actions

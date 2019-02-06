@@ -65,7 +65,6 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 	
 	private Map<Long,DatapathId> nodes = new HashMap<>(); 
 	private Map<DatapathId,Set<Link>> nodesWithLinks= new HashMap<>();
-	boolean firstTime = true;
     private Map<Link,Integer> linksContainer = new HashMap<>();
 	
 	@Override
@@ -109,51 +108,32 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 		extractor.packetExtract(cntx);
 
 		Object tmpObj = cntx.getStorage().get("net.floodlightcontroller.core.IFloodlightProvider.piPayload");
-		/*Ethernet eth = (Ethernet)tmpObj;
+		Ethernet eth = (Ethernet)tmpObj;
 		ARP arp = (ARP) eth.getPayload();
 		int ipAddr = arp.getTargetProtocolAddress().getInt();
 		
 		DatapathId targetDpId = addrMap.get(ipAddr);// Tu jest ID ostatniego nodea w sieci, potrzebne do Dijkstry
 		//logger.info("TargetNodeIP: " + targetDpId.toString()); 		
 	
-		*/
+		
 		
 		//TODO LAB 5
 		
 		Set<DatapathId> allIds = tm.switchService.getAllSwitchDpids();
-		
-		Flows.sendPacketOut(sw);
-		if(firstTime==true){
-			firstTime=false;
-			//TUTAJ ROBIE INIT KOSZOTW NA LACZACH
-			topologyInit(allIds);
-			
-		} 
-		//TESTOWE - do usuniecia
-		DatapathId test1 = null,test2 = null;
-		int xd=1;
-		for(DatapathId data : allIds){
-			if(xd==1){
-			test1 = data;
-			}
-			if(xd==4){
-			test2=data;
-			}
-			xd++;
-		}
-		logger.info("MOJEMOJEMOJE"+test1.toString()+"ss"+test2.toString());
+
+
 		logger.info("MOJEJEOEJEO" + linksContainer.keySet().toString());
 		//TODO DODANIE PRZELICZANIA KOSZTOW NA LINKACH
 		//buildLinkDpidMap(tm.switchService.getAllSwitchDpids(),tm.getSwitchPorts(),tm.linkDiscoveryService.getPortLinks())
 		//TWORZE DRZEWO ROZPINAJACE DIJKSTRY - Trzeba dac zrodlo jako docelowy - czyli to test1 = destnation
-		BroadcastTree tree = dijkstraa(tm.linkDiscoveryService.getSwitchLinks(),test1,linksContainer,true);
+		BroadcastTree tree = dijkstraa(tm.linkDiscoveryService.getSwitchLinks(),targetDpId,linksContainer,true);
 		
 		ArrayList<String> path = new ArrayList<>();
 		logger.info("TEEEEEEEEEST");
 		logger.info(tree.toString());
 		//WYLICZAM SCIEZKE OD test2 do test1 (teraz jest 1-->3 - wazne zeby nie robic src = destiantion ustawione
 		// na drzewie rozpinajacym bo sie wywroci cale
-		Path newroute = buildPath(new PathId(test2, test1), tree);	
+		Path newroute = buildPath(new PathId(sw.getId(), targetDpId), tree);	
 		//TODO przeparsowac newroute na liste Stringow do zmiennej path - mozliwe ze 5min roboty
 		logger.info("PATH"+newroute.toString()); 
 					/*
@@ -176,7 +156,15 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 					 *   tm.switchService.getSwitch(DatapathId.of(1)).getPorts() tutaj sa porty i adresy fizyczne po stronie switcha,
 					 *   ale dalej nie ma tego jak polaczyc z adresem na hoscie
 					 */
-					if(sw.getId().toString().equals("00:00:00:00:00:00:00:01"))
+		List<net.floodlightcontroller.core.types.NodePortTuple> route = newroute.getPath();
+		
+		//path.add(sw.getId().toString());
+		for(net.floodlightcontroller.core.types.NodePortTuple tuple : route)
+		{
+			path.add(tuple.getNodeId().toString());
+		}
+		logger.info("ESSSSSSSSSSSSSSTABL: "+path.toString());
+					/*if(sw.getId().toString().equals("00:00:00:00:00:00:00:01"))
 					{
 						path.add("00:00:00:00:00:00:00:01");
 						path.add("00:00:00:00:00:00:00:02");
@@ -186,7 +174,7 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 						path.add("00:00:00:00:00:00:00:03");
 						path.add("00:00:00:00:00:00:00:02");
 						path.add("00:00:00:00:00:00:00:01");
-					}
+					}*/
 					//
 			
 		OFPacketIn pin = (OFPacketIn) msg;
@@ -292,6 +280,9 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
         context.addService(IDeviceService.class, deviceManager);
         deviceManager.init(context);
         deviceManager.startUp(context);
+        
+        Set<DatapathId> allIds = tm.switchService.getAllSwitchDpids();
+		topologyInit(allIds);
         
 	}
 
