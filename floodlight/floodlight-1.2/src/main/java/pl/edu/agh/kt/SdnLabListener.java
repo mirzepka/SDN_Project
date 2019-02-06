@@ -104,6 +104,9 @@ public class SdnLabListener implements IFloodlightModule, IOFMessageListener {
 		if(!isCorrectCall()){
 			return  Command.STOP;
 		}
+		
+		StatisticsCollector.getInstance(sw);
+		
 		PacketExtractor extractor = new PacketExtractor();
 		extractor.packetExtract(cntx);
 
